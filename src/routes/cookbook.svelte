@@ -1,7 +1,6 @@
 <script lang="ts">
   import LogArea from "../components/LogArea.svelte";
-  import { someObject } from "../keys";
-  console.log(someObject);
+  console.log(process.env.SVELTE_APP_FAUNADB_SECRET_FAUNADB_DOCS);
   let logDetails: object;
 </script>
 
