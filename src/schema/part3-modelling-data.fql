@@ -1,0 +1,147 @@
+Create(
+  Collection("Moons"),
+  {
+    data: {
+      name: "Luna",
+      planetRef: Ref(Collection("Planets"), "283712237752812037")
+    }
+  }
+)
+
+CreateIndex({
+  name: "all_Moons_by_planet",
+  source: [Collection("Moons")],
+  terms: [{ field: ["data", "planetRef"]}]
+})
+
+Map(
+  Paginate(
+    Match(
+      Index("all_Moons_by_planet"),
+      Ref(Collection("Planets"), "283712237752812037")
+    )
+  ),
+  Lambda("moonRef", Get(Var("moonRef")))
+)
+
+CreateIndex({
+  name: "only_one_Moon_per_planet",
+  source: [
+    Collection("Moons")
+  ],
+  terms: [
+    { field: ["data", "planetRef"] }
+  ],
+  unique: true
+})
+
+Create(
+  Collection("Moons"),
+  {
+    data: {
+      name: "Luna 2",
+      planetRef: Ref(Collection("Planets"), "283712237752812037")
+    }
+  }
+)
+
+Let(
+  {
+    planetDoc: Get(Ref(Collection("Planets"), "283712237752812037"))
+  },
+  {
+    planet: Var("planetDoc"),
+    moons: Map(
+      Select(["data", "moonRefs"], Var("planetDoc")),
+      Lambda("moonRef", Get(Var("moonRef")))
+    )
+  }
+)
+
+Let(
+  {
+    planetDoc: Get(Ref(Collection("Planets"), "283712237752812037"))
+  },
+  {
+    planet: Let(
+      {}, {
+        id: Select(["ref", "id"], Var("planetDoc")),
+        name: Select(["data", "name"], Var("planetDoc")),
+        moons: Map(
+          Select(["data", "moonRefs"], Var("planetDoc")),
+          Lambda("moonRef", Let(
+            {
+              moonDoc: Get(Var("moonRef"))
+            },
+            {
+              id: Select(["ref", "id"], Var("moonDoc")),
+              name: Select(["data", "name"], Var("moonDoc"))
+            }
+          ))
+        )
+      }
+    )
+  }
+)
+
+Map(
+  Paginate(Match(Index("all_DockRepairs"))),
+  Lambda("repairRef", Let({
+    repairDoc: Get(Var("repairRef"))
+  }, {
+    durationMinutes: If(
+      Or(
+        IsNull(Select(["data", "startTimestamp"], Var("repairDoc"), null)),
+        IsNull(Select(["data", "endTimestamp"], Var("repairDoc"), null))
+      ),
+      null,
+      TimeDiff(
+        Select(["data", "endTimestamp"], Var("repairDoc")),
+        Select(["data", "startTimestamp"], Var("repairDoc")),
+        "minutes"
+      )
+    ),
+    repair: Var("repairDoc")
+  }))
+)
+
+CreateIndex({
+  name: "all_DockRepairs_with_duration",
+  source: {
+    collection: Collection("DockRepairs"),
+    fields: {
+      durationMinutes: Query(
+        Lambda("repairDoc", 
+          If(
+            Or(
+              IsNull(Select(["data", "startTimestamp"], Var("repairDoc"), null)),
+              IsNull(Select(["data", "endTimestamp"], Var("repairDoc"), null))
+            ),
+            null,
+            TimeDiff(
+              Select(["data", "endTimestamp"], Var("repairDoc")),
+              Select(["data", "startTimestamp"], Var("repairDoc")),
+              "minutes"
+            )
+          )
+        )
+      )
+    }
+  },
+  values: [
+    {binding: "durationMinutes"},
+    {field: ["ref", "id"]},
+    {field: ["data", "status"]}
+  ]
+})
+
+Map(
+  Paginate(Match(Index("all_DockRepairs_with_duration"))),
+  Lambda("result", Let({},
+    {
+      id: Select([1], Var("result")),
+      status: Select([2], Var("result")),
+      durationMinutes: Select([0], Var("result"))
+    }
+  ))
+)

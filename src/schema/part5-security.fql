@@ -1,0 +1,30 @@
+CreateKey({
+  role: "server"
+})
+
+Create(
+  Collection("SpaceUsers"),
+  {
+    data: {
+      email: "darth@empire.com"
+    },
+    credentials: {
+      password: "iamyourfather"
+    }
+  }
+)
+
+CreateIndex({
+  name: "SpaceUsers_by_email",
+  source: Collection("SpaceUsers"),
+  terms: [ {field: ["data", "email"]}],
+  unique: true
+})
+
+Login(
+  Match(Index("SpaceUsers_by_email"), "darth@empire.com"),
+  {
+    password: "iamyourfather",
+    ttl: TimeAdd(Now(), 3, "hour")
+  }
+)

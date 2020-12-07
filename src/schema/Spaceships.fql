@@ -1,0 +1,19 @@
+Map(
+  [
+    {
+      name: "Explorer IV",
+      colors: ["BLUE", "WHITE", "RED"]
+    },
+    {
+      name: "Navigator",
+      colors: ["WHITE", "GREY"]
+    },
+    {
+      name: "Le Super Spaceship",
+      colors: ["PINK", "MAGENTA", "WHITE"]
+    }
+  ],
+  Lambda("shipData", Create(Collection("Spaceships"), {
+    data: Var("shipData")
+  }))
+)

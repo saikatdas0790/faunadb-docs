@@ -1,0 +1,105 @@
+Map(
+[
+  {
+    name: "Mercury",
+    type: "TERRESTRIAL",
+    color: "GREY"
+  },
+  {
+    name: "Saturn",
+    type: "GAS",
+    color: "YELLOW"
+  },
+  {
+    name: "Uranus",
+    type: "ICE",
+    color: "BLUE"
+  }
+], Lambda("planetValue", 
+    Create(Collection("Planets"), {
+      data: Var("planetValue")
+    }
+  )
+))
+
+CreateIndex({
+  name: "all_Planets_by_type_sorted_by_name",
+  source: Collection("Planets"),
+  terms: [
+    { field: ["data", "type"]}
+  ],
+  values: [
+    {field: ["data", "name"]},
+    {field: ["ref"]}
+  ]
+})
+
+Map(
+  Paginate(Match(Index("all_Planets_by_type_sorted_by_name"), "TERRESTRIAL")),
+  Lambda("planetResult", Get(Select([1], Var("planetResult"))))
+)
+
+CreateIndex({
+  name: "all_Spaceships_by_code",
+  source: Collection("Spaceships"),
+  terms: [
+    { field: ["data", "code"] }
+  ],
+  unique: true
+})
+
+CreateIndex({
+  name: "all_Spaceships_by_pendingFuelTons",
+  source: {
+    collection: Collection("Spaceships"),
+    fields: {
+      pendingFuelTons: Query(
+        Lambda("shipDoc",
+          Subtract(
+            Select(["data", "maxFuelTons"], Var("shipDoc")),
+            Select(["data", "actualFuelTons"], Var("shipDoc"))
+          )
+        )
+      )
+    }
+  },
+  values: [
+    {binding: "pendingFuelTons"},
+    {field: ["data", "name"]}
+  ]
+})
+
+CreateIndex({
+  name: "all_Planets_by_firstletter",
+  source: {
+    collection: Collection("Planets"),
+    fields: {
+      firstLetter: Query(
+        Lambda("planetDoc",
+          SubString(Select(["data", "name"], Var("planetDoc")), 0, 1)
+        )
+      )
+    }
+  },
+  terms: [
+    { binding: "firstLetter" }
+  ]
+})
+
+CreateIndex({
+  name: "filter_Spaceships_by_letter",
+  source: {
+    collection: Collection("Spaceships"),
+    fields: {
+      nameLetters: Query(
+        Lambda("shipDoc",
+          NGram(Select(["data", "name"], Var("shipDoc")), 1, 1)
+        )
+      )
+    }
+  },
+  terms: [
+    { binding: "nameLetters" }
+  ]
+})
+

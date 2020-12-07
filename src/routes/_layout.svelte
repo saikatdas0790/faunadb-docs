@@ -21,6 +21,7 @@
   <ul>
     <li><a href="/">Index</a></li>
     <li><a href="/cookbook">Cookbook</a></li>
+    <li><a href="/tutorials-fql">Tutorials - FQL</a></li>
   </ul>
 </nav>
 <main>

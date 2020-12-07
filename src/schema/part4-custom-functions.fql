@@ -1,0 +1,228 @@
+CreateFunction({
+  name: "GetSpaceship",
+  body: Query(
+    Lambda("shipId",
+      Let(
+        {
+          shipDoc: Get(Ref(Collection("Spaceships"), Var("shipId")))
+        },
+        {
+          id: Select(["ref", "id"], Var("shipDoc")),
+          name: Select(["data", "name"], Var("shipDoc"))
+        }
+      )
+    )
+  )
+})
+
+Call(Function("GetSpaceship"), "283592717689160193")
+
+Map(
+  Paginate(Documents(Collection("Spaceships"))),
+  Lambda(
+    "shipRef",
+    Call(Function("GetSpaceship"), Select(["id"], Var("shipRef")))
+  )
+)
+
+Map(
+  Paginate(Documents(Collection("Spaceships"))),
+  Lambda(
+    "shipRef",
+    Var("shipRef")
+  )
+)
+
+Do(
+  Create(Ref(Collection("LaserColors"), "123456"), {
+    data: {
+      name: "Pink"
+    }
+  }),
+  Update(Ref(Collection("LaserColors"), "123456"), {
+    data: {
+      hex: "#ff5c9e"
+    }
+  })
+)
+
+Do(
+  "Step 1",
+  "Step 2",
+  Abort("You shall not pass!"),
+  "Step 3"
+)
+
+CreateFunction({
+  name: "StopIt",
+  body: Query(
+    Lambda("bool",
+      If(
+        Var("bool"),
+        Abort("Stopped!"),
+        "Not stopped!"
+      )
+    )
+  )
+})
+
+Call(Function("StopIt"), true)
+
+CreateFunction({
+  name: "HasEnoughFuelToWarp",
+  body: Query(
+    Lambda("shipRef",
+      Let(
+        {
+          shipDoc: Get(Var("shipRef")),
+          actualFuelTons: Select(["data","actualFuelTons"], Var("shipDoc"))
+        },
+        GTE(Var("actualFuelTons"), 5)
+      )
+  ))
+})
+
+Call(
+  Function("HasEnoughFuelToWarp"),
+  Ref(Collection("Spaceships"), "283592717689160193")
+)
+
+CreateFunction({
+  name: "OpenWormholeAndWarp",
+  body: Query(
+    Lambda("shipRef",
+      Update(
+        Var("shipRef"),
+        Let({
+          shipDoc: Get(Var("shipRef")),
+          actualFuelTons: Select(["data", "actualFuelTons"], Var("shipDoc"))
+        }, {
+          data: {
+            actualFuelTons: Subtract(Var("actualFuelTons"), 5)
+          }
+        })
+      )
+    )
+  )
+})
+
+Create(Collection("Spaceships"), {
+  data: {
+    name: "Destroyer",
+    actualFuelTons: 11
+  }
+})
+
+Call(
+  Function("OpenWormholeAndWarp"),
+  Ref(Collection("Spaceships"), "283995254172942855")
+)
+
+CreateCollection({ name: "ShipLogs" })
+
+CreateFunction({
+  name: "CreateLogEntry",
+  body: Query(
+    Lambda(["shipRef", "planetRef", "status"],
+      Create(
+        Collection("ShipLogs"),
+        {
+          data: {
+            shipRef: Var("shipRef"),
+            planetRef: Var("planetRef"),
+            status: Var("status")
+          }
+        }
+      )
+    )
+  )
+})
+
+CreateFunction({
+  name: "WarpToPlanet",
+  body: Query(
+    Lambda(["shipRef", "planetRef"],
+      If(
+        Call(Function("HasEnoughFuelToWarp"), Var("shipRef")),
+        Do(
+          Call(Function("OpenWormholeAndWarp"), Var("shipRef")),
+          Call(Function("CreateLogEntry"), [Var("shipRef"), Var("planetRef"), "WARPED_TO_PLANET"]),
+          Let(
+            {
+              planetDoc: Get(Var("planetRef")),
+              planetName: Select(["data", "name"], Var("planetDoc")),
+              shipDoc: Get(Var("shipRef")),
+              shipName: Select(["data", "name"], Var("shipDoc")),
+            },
+            Concat(["Welcome ", Var("shipName"), " to ", Var("planetName")])
+          )
+        ),
+        Abort("Not enough fuel!")
+      )
+    )
+  )
+})
+
+Create(Collection("Planets"), {
+  data: {
+    name: "Vulkan"
+  }
+})
+
+Call(
+  Function("WarpToPlanet"),
+  [
+    Ref(Collection("Spaceships"), "283592717689160193"),
+    Ref(Collection("Planets"), "283995858824856069")
+  ]
+)
+
+Call(
+  Function("WarpToPlanet"),
+  [
+    Ref(Collection("Spaceships"), "283592717689160193"),
+    Ref(Collection("Planets"), "283712237752812037")
+  ]
+)
+
+CreateCollection({ name: "ShipPositionsHistory" })
+
+CreateFunction({
+  name: "RecordPositions",
+  body: Query(
+    Lambda("bool",
+      Do(
+        Create(
+          Collection("ShipPositionsHistory"),
+          Let({
+            shipsDocuments: Map(
+              Paginate(
+                Documents(Collection("Spaceships"))),
+                Lambda("shipRef", Get(Var("shipRef"))
+              )
+            ),
+            positions: Map(
+              Var("shipsDocuments"),
+              Lambda("shipDocument",
+                {
+                  ref: Select(["ref"], Var("shipDocument")),
+                  name: Select(["data","name"], Var("shipDocument")),
+                  position: Select(
+                    ["data","celestialPosition"],
+                    Var("shipDocument")
+                  )
+                }
+              )
+            )
+          },{
+            data: {
+              timestamp: Now(),
+              positions: Var("positions")
+            }
+          })
+        ),
+        "Positions recorded"
+      )
+    )
+  )
+})

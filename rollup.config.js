@@ -34,8 +34,10 @@ export default {
         ...includeEnv(),
       }),
       svelte({
-        dev,
-        hydratable: true,
+        compilerOptions: {
+          dev,
+          hydratable: true,
+        },
         preprocess: sveltePreprocess(),
         emitCss: true,
       }),
@@ -46,6 +48,7 @@ export default {
       resolve({
         browser: true,
         dedupe: ["svelte"],
+        preferBuiltins: false,
       }),
       commonjs(),
       typescript({ sourceMap: dev }),
@@ -94,10 +97,12 @@ export default {
         ...includeEnv(),
       }),
       svelte({
-        generate: "ssr",
-        hydratable: true,
+        compilerOptions: {
+          generate: "ssr",
+          hydratable: true,
+          dev,
+        },
         preprocess: sveltePreprocess(),
-        dev,
       }),
       url({
         sourceDir: path.resolve(__dirname, "src/node_modules/images"),
@@ -106,6 +111,7 @@ export default {
       }),
       resolve({
         dedupe: ["svelte"],
+        preferBuiltins: false,
       }),
       commonjs(),
       typescript({ sourceMap: dev }),
