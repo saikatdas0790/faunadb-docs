@@ -1,0 +1,37 @@
+type Todo {
+  title: String!
+  completed: Boolean
+}
+
+type User {
+  username: String! @unique(index: "unique_username")
+  name: String!
+  address: Address
+  car: [Car!] @relation
+  posts: [Post!] @relation(name: "user_posts")
+  reviews: [Post!] @relation(name: "user_reviews")
+}
+
+type Car {
+  plate: String!
+  owner: User
+  drivers: [User] @relation
+}
+
+type Post {
+  title: String!
+  author: User! @relation(name: "user_posts")
+  reviewers: [User!] @relation(name: "user_reviews")
+}
+
+type Address @embedded {
+  street: String!
+  city: String!
+  zipCode: String!
+}
+
+type Query {
+  allTodos: [Todo!]
+  todosByCompletedFlag(completed: Boolean!): [Todo!]
+  allUsers: [User!]!
+}

@@ -1,0 +1,187 @@
+Let(
+  {
+    ref: Ref(Collection("Teleportations"), "284952035050127877"),
+    ts: Select(["data", "ts"], Get(Var("ref")))
+  },
+  Update(
+    Var("ref")
+    {
+      data: {
+        ts: TimeAdd(Var("ts"), 8, "hours")
+      }
+    }
+  )
+)
+
+Let(
+  {
+    ref: Ref(Collection("Teleportations"), "284952035050127877"),
+    ts: Select(["data", "ts"], Get(Var("ref")))
+  },
+  TimeDiff(Now(), Var("ts"), "minutes")
+)
+
+Let(
+  {
+    ref: Ref(Collection("Teleportations"), "284952035050127877"),
+    ts: Select(["data", "ts"], Get(Var("ref"))),
+    timeDiffHours: TimeDiff(Now(), Var("ts"), "hours"),
+    hoursInMinutes: Multiply(Var("timeDiffHours"), 60),
+    timeDiffMinutes: TimeDiff(Now(), Var("ts"), "minutes"),
+    remainingMinutes: Subtract(Var("timeDiffMinutes"), Var("hoursInMinutes"))
+  },
+  Format(
+    "You have to wait %s hours and %s minutes",
+    Var("timeDiffHours"),
+    Var("remainingMinutes")
+  )
+)
+
+CreateIndex({
+  name: "all_Teleportations_by_ts",
+  source: Collection("Teleportations"),
+  values: [
+    {field: ["data", "ts"]},
+    {field: ["ref"]}
+  ]
+})
+
+CreateIndex({
+  name: "all_Teleportations_by_ts_desc",
+  source: Collection("Teleportations"),
+  values: [
+    {field: ["data", "ts"], reverse: true},
+    {field: ["ref"]}
+  ]
+})
+
+Map(
+  Paginate(Match(Index("all_Teleportations_by_ts"))),
+  Lambda(
+    ["ts", "ref"],
+    Update(
+      Var("ref"),
+      {data: {date: ToDate(Var("ts"))}}
+    )
+  )
+)
+
+CreateIndex({
+  name: "all_Teleportations_by_date",
+  source: Collection("Teleportations"),
+  terms: [
+    {field: ["data", "date"]}
+  ]
+})
+
+Paginate(Match(Index("all_Teleportations_by_date"), Date("2020-08-19")))
+
+Map(
+  Paginate(Match(Index("all_Teleportations_by_ts"))),
+  Lambda(
+    ["ts", "ref"],
+    Update(
+      Var("ref"),
+      {data: {weekday: DayOfWeek(Var("ts"))}}
+    )
+  )
+)
+
+CreateIndex({
+  name: "all_Teleportations_by_weekday",
+  source: Collection("Teleportations"),
+  terms: [
+    {field: ["data", "weekday"]}
+  ]
+})
+
+Paginate(Match(Index("all_Teleportations_by_weekday"), 3))
+
+CreateCollection({name: "Numbers"})
+
+Create(Collection("Numbers"), {data: {value: 1}})
+Create(Collection("Numbers"), {data: {value: 2}})
+Create(Collection("Numbers"), {data: {value: 3}})
+Create(Collection("Numbers"), {data: {value: 4}})
+Create(Collection("Numbers"), {data: {value: 5}})
+Create(Collection("Numbers"), {data: {value: 6}})
+Create(Collection("Numbers"), {data: {value: 7}})
+Create(Collection("Numbers"), {data: {value: 8}})
+Create(Collection("Numbers"), {data: {value: 9}})
+Create(Collection("Numbers"), {data: {value: 10}})
+
+CreateIndex({
+  name: "Numbers_by_value",
+  source: Collection("Numbers"),
+  values: [
+    {field: ["data", "value"]}
+  ]
+})
+
+Paginate(Match(Index("Numbers_by_value")))
+
+Paginate(Range(Match(Index("Numbers_by_value")), 2, 6))
+
+CreateCollection({name: "NumbersMultiple"})
+
+Create(Collection("NumbersMultiple"), {data: {a: 1, b: 8}})
+Create(Collection("NumbersMultiple"), {data: {a: 2, b: 9}})
+Create(Collection("NumbersMultiple"), {data: {a: 3, b: 10}})
+Create(Collection("NumbersMultiple"), {data: {a: 4, b: 11}})
+Create(Collection("NumbersMultiple"), {data: {a: 5, b: 12}})
+Create(Collection("NumbersMultiple"), {data: {a: 6, b: 13}})
+Create(Collection("NumbersMultiple"), {data: {a: 7, b: 14}})
+
+CreateIndex({
+  name: "NumbersMultiple_by_a_and_b",
+  source: Collection("NumbersMultiple"),
+  values: [
+    {field: ["data", "a"]},
+    {field: ["data", "b"]}
+  ]
+})
+
+Paginate(
+  Range(Match(Index("NumbersMultiple_by_a_and_b")), 2, 6)
+)
+
+Paginate(
+  Range(
+    Match(Index("all_Teleportations_by_date")),
+    Date("2020-01-01"),
+    Date("2020-01-01")
+  )
+)
+
+CreateIndex({
+  name: "all_Teleportations_by_ts_range",
+  source: Collection("Teleportations"),
+  values: [
+    {field: ["data", "ts"]},
+    {field: "ref"}
+  ]
+})
+
+Paginate(
+  Range(
+    Match(Index("all_Teleportations_by_ts_range")),
+    Now(),
+    TimeAdd(Now(), 100, "days")
+  )
+)
+
+Paginate(
+  Range(
+    Match(Index("all_Teleportations_by_ts_range")),
+    Date("2020-01-01"),
+    Date("2021-01-01")
+  )
+)
+
+Paginate(
+  Range(
+    Match(Index("all_Teleportations_by_ts_range")),
+    ToTime(Date("2020-01-01")),
+    ToTime(Date("2021-01-01"))
+  )
+)
