@@ -1,0 +1,54 @@
+Create(
+  Collection("Post"),
+  {
+    data: {
+      title: "Deno is a secure runtime for JavaScript and TypeScript"
+    }
+  }
+)
+
+Map(
+  [
+    "Vue.js is an open-source model-view-viewmodel JavaScript framework for building user interfaces and single-page applications",
+    "NextJS is a React framework for building production grade applications that scale"
+  ],
+  Lambda(
+    "post_title",
+    Create(
+      Collection("Post"),
+      {
+        data: {
+          title: Var("post_title")
+        }
+      }
+    )
+  )
+)
+
+Get(
+  Ref(
+    Collection("Post"), "285958553860047367"
+  )
+)
+
+CreateIndex({
+  name: "posts",
+  source: Collection("Post")
+})
+
+Paginate(
+  Match(
+    Index("posts")
+  )
+)
+
+Map(
+  Paginate(
+    Match(
+      Index("posts")
+    )
+  ),
+  Lambda(
+    "postRef", Get(Var("postRef"))
+  )
+)
