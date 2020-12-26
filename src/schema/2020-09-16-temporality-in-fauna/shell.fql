@@ -1,0 +1,210 @@
+# DB a_space_odyssey
+CreateCollection({name: "MyCollection"})
+
+CreateCollection({
+  name: "CollectionWithAYearOfHistory",
+  history_days: 365
+})
+
+CreateCollection({
+  name: "CollectionForever",
+  history_days: null
+})
+
+CreateCollection({
+  name: "CollectionNoHistory",
+  history_days: 0
+})
+
+CreateCollection({name: "Lasers"})
+
+Create(
+  Collection("Lasers"),
+  {
+    data: {
+      color: "BLUE",
+      crystal: "KYBER"
+    }
+  }
+)
+
+Update(
+  Ref(Collection("Lasers"), "285959709564862983"),
+  {data: {color: "GREEN"}}
+)
+
+Delete(
+  Ref(Collection("Lasers"), "285959709564862983")
+)
+
+Paginate(
+  Events(
+    Ref(Collection("Lasers"), "285959709564862983")
+  )
+)
+
+Paginate(
+  Documents(
+    Collection("Lasers")
+  ),
+  {events: true}
+)
+
+Filter(
+  Select(
+    ["data"],
+    Paginate(Events(Ref(Collection("Lasers"), "285959709564862983")))
+  ),
+  Lambda(
+    "event",
+    Equals(
+      Select(["action"], Var("event")),
+      "update"
+    )
+  )
+)
+
+Filter(
+  Select(
+    ["data"],
+    Paginate(Events(Ref(Collection("Lasers"), "285959709564862983")))
+  ),
+  Lambda(
+    "event",
+    Equals(
+      ToDate(
+        Epoch(
+          Select(["ts"], Var("event")),
+          "microseconds"
+        )
+      ),
+      Date('2020-12-26')
+    )
+  )
+)
+
+Paginate(
+  Documents(Collection("Lasers")),
+  {
+    events: true,
+    before: Date("2020-12-26")
+  }
+)
+
+Paginate(
+  Documents(Collection("Lasers")),
+  {
+    events: true,
+    after: Date("2020-12-26")
+  }
+)
+
+At(
+  <timestamp>,
+  Get(Ref(Collection("Lasers"), "285959709564862983"))
+)
+
+Create(
+  Collection("Lasers"),
+  {
+    data: {
+      color: "RED"
+    }
+  }
+)
+
+At(
+  1608973799000000,
+  Update(
+    Ref(Collection("Lasers"), "285962455156261383"),
+    {
+      data: {
+        color: "PURPLE"
+      }
+    }
+  )
+)
+
+Create(
+  Collection("Lasers"),
+  {
+    data: {
+      color: "ORANGE",
+      crystal: "QUARTZIUM"
+    }
+  }
+)
+
+Insert(
+  Ref(Collection("Lasers"), "285962624999358977"),
+  TimeSubtract(Epoch(1608974060990000, "microseconds"), 1, "second"),
+  "create",
+  {
+    data: {
+      color: "YELLOW",
+      crystal: "QUARTZIUM"
+    }
+  }
+)
+
+Paginate(Events(Ref(Collection("Lasers"), "285962624999358977")))
+
+Get(Ref(Collection("Lasers"), "285962624999358977"))
+
+Delete(Ref(Collection("Lasers"), "285962624999358977"))
+
+Filter(
+  Select(
+    ["data"],
+    Paginate(Events(Ref(Collection("Lasers"), "285962624999358977")))
+  ),
+  Lambda(
+    "event",
+    Equals(Select(["action"], Var("event")), "delete")
+  )
+)
+
+Remove(
+  Ref(Collection("Lasers"), "285962624999358977"),
+  1608974360330000,
+  "delete"
+)
+
+Paginate(Events(Ref(Collection("Lasers"), "285962624999358977")))
+
+Get(Ref(Collection("Lasers"), "285962624999358977"))
+
+Create(
+  Collection("Lasers"),
+  {
+    data: {
+      color: "BLUE"
+    }
+  }
+)
+
+Delete(Ref(Collection("Lasers"), "285963212995691009"))
+
+Paginate(Events(Ref(Collection("Lasers"), "285963212995691009")))
+
+At(
+  1608974622340000,
+  Get(Ref(Collection("Lasers"), "285963212995691009"))
+)
+
+Let(
+  {
+    deletedDoc: At(
+      1608974622340000,
+      Get(Ref(Collection("Lasers"), "285963212995691009"))
+    ),
+    ref: Select(["ref"], Var("deletedDoc")),
+    data: Select(["data"], Var("deletedDoc"))
+  },
+  Create(
+    Var("ref"),
+    {data: Var("data")}
+  )
+)
+
+Paginate(Events(Ref(Collection("Lasers"), "285963212995691009")))
