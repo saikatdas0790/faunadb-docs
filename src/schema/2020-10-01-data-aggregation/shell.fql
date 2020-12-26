@@ -1,0 +1,211 @@
+# DB a_space_odyssey
+CreateCollection({name: "Robots"})
+
+CreateIndex({
+  name: "all_Robots",
+  source: Collection("Robots")
+})
+
+Create(
+  Collection("Robots"),
+  {
+    data: {
+      name: "R3-D3",
+      type: "ASTROMECH",
+      weightKg: 20
+    }
+  }
+)
+
+Create(
+  Collection("Robots"),
+  {
+    data: {
+      name: "BB-9",
+      type: "ASTROMECH",
+      weightKg: 10
+    }
+  }
+)
+
+Create(
+  Collection("Robots"),
+  {
+    data: {
+      name: "David",
+      type: "ANDROID",
+      weightKg: 90
+    }
+  }
+)
+
+Create(
+  Collection("Robots"),
+  {
+    data: {
+      name: "T1000",
+      type: "ANDROID",
+      weightKg: 150
+    }
+  }
+)
+
+Create(
+  Collection("Robots"),
+  {
+    data: {
+      name: "ASIMO",
+      type: "HUMANOID",
+      weightKg: 48
+    }
+  }
+)
+
+Count(Documents(Collection("Robots")))
+
+Count(Match(Index("all_Robots")))
+
+Count(Paginate(Match(Index("all_Robots"))))
+
+CreateIndex({
+  name: "Robot_weights",
+  source: Collection("Robots"),
+  values: [
+    {field: ["data", "weightKg"]}
+  ]
+})
+
+Paginate(Match(Index("Robot_weights")))
+
+Sum(Paginate(Match(Index("Robot_weights"))))
+
+Let(
+  {
+    docs: Map(
+      Paginate(Documents(Collection("Robots"))),
+      Lambda("ref", Get(Var("ref")))
+    ),
+    weights: Map(
+      Var("docs"),
+      Lambda("doc", Select(["data", "weightKg"], Var("doc")))
+    )
+  },
+  Var("weights")
+)
+
+Let(
+  {
+    docs: Map(
+      Paginate(Documents(Collection("Robots"))),
+      Lambda("ref", Get(Var("ref")))
+    ),
+    weights: Map(
+      Var("docs"),
+      Lambda("doc", Select(["data", "weightKg"], Var("doc")))
+    )
+  },
+  Sum(Var("weights"))
+)
+
+CreateIndex({
+  name: "Robots_types",
+  source: Collection("Robots"),
+  values: [
+    {field: ["data", "type"]}
+  ]
+})
+
+Paginate(Match(Index("Robots_types")))
+
+Distinct(Paginate(Match(Index("Robots_types"))))
+
+CreateIndex({
+  name: "Robots_by_type",
+  source: Collection("Robots"),
+  terms: [
+    {field: ["data", "type"]}
+  ]
+})
+
+Let(
+  {
+    types: Distinct(Paginate(Match(Index("Robots_types"))))
+  },
+  Map(
+    Var("types"),
+    Lambda(
+      "type",
+      Let(
+        {
+          refs: Match(Index("Robots_by_type"), Var("type"))
+        },
+        {
+          type: Var("type"),
+          total: Count(Var("refs"))
+        }
+      )
+    )
+  )
+)
+
+CreateIndex({
+  name: "Robots_weights_by_type",
+  source: Collection("Robots"),
+  terms: [
+    {field: ["data", "type"]}
+  ],
+  values: [
+    {field: ["data", "weightKg"]}
+  ]
+})
+
+Paginate(Match(Index("Robots_weights_by_type"), "ASTROMECH"))
+
+Let(
+  {
+    types: Distinct(Paginate(Match(Index("Robots_types"))))
+  },
+  Map(
+    Var("types"),
+    Lambda(
+      "type",
+      {
+        type: Var("type"),
+        averageWeight: Mean(
+          Match(Index("Robots_weights_by_type"), Var("type"))
+        )
+      }
+    )
+  )
+)
+
+Let(
+  {
+    types: Paginate(Match(Index("Robots_types"))),
+    uniqueTypes: Distinct(Select(["data"], Var("types"))),
+    weights: Paginate(Match(Index("Robots_weights")))
+  },
+  {
+    totalRobots: Count(Select(["data"], Var("types"))),
+    totalWeight: Sum(Select(["data"], Var("weights"))),
+    types: Map(
+      Var("uniqueTypes"),
+      Lambda(
+        "type",
+        Let(
+          {
+            typeWeights: Paginate(
+              Match(Index("Robots_weights_by_type"), Var("type"))
+            ),
+          },
+          {
+            type: Var("type"),
+            total: Count(Select(["data"], Var("typeWeights"))),
+            totalWeight: Sum(Select(["data"], Var("typeWeights"))),
+            averageWeight: Mean(Select(["data"], Var("typeWeights")))
+          }
+        )
+      )
+    )
+  }
+)
