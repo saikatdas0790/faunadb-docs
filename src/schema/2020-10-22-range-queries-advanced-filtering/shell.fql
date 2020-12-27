@@ -1,0 +1,101 @@
+CreateCollection({
+  name: "Alphabet"
+})
+
+Map(
+  [
+    {letter: "A", position: 1},
+    {letter: "B", position: 2},
+    {letter: "C", position: 3},
+    {letter: "D", position: 4},
+    {letter: "E", position: 5},
+    {letter: "F", position: 6},
+    {letter: "G", position: 7},
+    {letter: "H", position: 8},
+    {letter: "I", position: 9},
+    {letter: "J", position: 10}
+  ],
+  Lambda(
+    "data",
+    Create(
+      Collection("Alphabet"),
+      {data: Var("data")}
+    )
+  )
+)
+
+CreateIndex({
+  name: "Alphabet_by_letter_position",
+  source: Collection("Alphabet"),
+  values: [
+    {field: ["data", "letter"]},
+    {field: ["data", "position"]}
+  ]
+})
+
+Paginate(Match(Index("Alphabet_by_letter_position")))
+
+Paginate(
+  Range(
+    Match(Index("Alphabet_by_letter_position")),
+    "A", "E"
+  )
+)
+
+Paginate(
+  Range(
+    Match(Index("Alphabet_by_letter_position")),
+    ["A"], ["E"]
+  )
+)
+
+Paginate(
+  Range(
+    Match(Index("Alphabet_by_letter_position")),
+    [], ["c"]
+  )
+)
+
+Paginate(
+  Range(
+    Match(Index("Alphabet_by_letter_position")),
+    ["A", 3],
+    ["G", 4]
+  )
+)
+
+CreateCollection({
+  name: "RobotRepairs"
+})
+
+CreateIndex({
+  name: "RobotRepairs_startTs_endTs_type_by_type",
+  source: Collection("RobotRepairs"),
+  values: [
+    {field: ["data", "startTs"]},
+    {field: ["data", "endTs"]},
+    {field: ["data", "type"]},
+    {field: ["ref"]}
+  ],
+  terms: [
+    {field: ["data", "type"]}
+  ]
+})
+
+Create(
+  Collection("RobotRepairs"),
+  {
+    data: {
+      startTs: Time("2020-09-25T10:00:00Z"),
+      endTs: Time("2020-09-27T18:00:00Z"),
+      type: "CPU_REPLACE"
+    }
+  }
+)
+
+Paginate(
+  Match(
+    Index("RobotRepairs_startTs_endTs_type_by_type"),
+    "CPU_REPLACE"
+  )
+)
