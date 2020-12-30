@@ -1,0 +1,460 @@
+CreateCollection({
+  name: "Planets"
+})
+
+CreateCollection({
+  name: "Factories"
+})
+
+CreateCollection({
+  name: "RobotParts"
+})
+
+CreateIndex({
+  name: "Factories_by_planetRef",
+  source: Collection("Factories"),
+  terms: [
+    {field: ["data", "planetRef"]}
+  ]
+})
+
+CreateIndex({
+  name: "RobotParts_by_factoryRef",
+  source: Collection("RobotParts"),
+  terms: [
+    {field: ["data", "factoryRef"]}
+  ]
+})
+
+Create(
+  Ref(Collection("Planets"), "1"),
+  {
+    data: {
+      name: "Vulcan"
+    }
+  }
+)
+
+Create(
+  Ref(Collection("Factories"), "1"),
+  {
+    data: {
+      name: "Robot Corp",
+      planetRef: Ref(Collection("Planets"), "1")
+    }
+  }
+)
+
+Create(
+  Ref(Collection("Factories"), "2"),
+  {
+    data: {
+      name: "AGC Industries",
+      planetRef: Ref(Collection("Planets"), "1")
+    }
+  }
+)
+
+Create(
+  Ref(Collection("RobotParts"), "1"),
+  {
+    data: {
+      serial: "Rygen 4",
+      factoryRef: Ref(Collection("Factories"), "1"),
+      type: "CPU"
+    }
+  }
+)
+
+Create(
+  Ref(Collection("RobotParts"), "2"),
+  {
+    data: {
+      serial: "Zaphire 4",
+      factoryRef: Ref(Collection("Factories"), "2"),
+      type: "CPU"
+    }
+  }
+)
+
+Create(
+  Ref(Collection("RobotParts"), "3"),
+  {
+    data: {
+      serial: "X92",
+      factoryRef: Ref(Collection("Factories"), "1"),
+      type: "SENSOR"
+    }
+  }
+)
+
+Paginate(
+  Match(
+    Index("Factories_by_planetRef"),
+    Ref(Collection("Planets"), "1")
+  )
+)
+
+Paginate(
+  Match(
+    Index("RobotParts_by_factoryRef"),
+    Ref(Collection("Factories"), "1")
+  )
+)
+
+Map(
+  Paginate(
+    Match(
+      Index("Factories_by_planetRef"),
+      Ref(Collection("Planets"), "1")
+    )
+  ),
+  Lambda(
+    "factoryRef",
+    Paginate(
+      Match(
+        Index("RobotParts_by_factoryRef"),
+        Var("factoryRef")
+      )
+    )
+  )
+)
+
+Paginate(
+  Join(
+    Match(
+      Index("Factories_by_planetRef"),
+      Ref(Collection("Planets"), "1")
+    ),
+    Index("RobotParts_by_factoryRef")
+  )
+)
+
+Map(
+  Paginate(
+    Join(
+      Match(
+        Index("Factories_by_planetRef"),
+        Ref(Collection("Planets"), "1")
+      ),
+      Index("RobotParts_by_factoryRef")
+    )
+  ),
+  Lambda(
+    "robotPartRef",
+    Get(Var("robotPartRef"))
+  )
+)
+
+CreateIndex({
+  name: "RobotParts_by_factoryRef_and_type",
+  source: Collection("RobotParts"),
+  terms: [
+    {field: ["data", "factoryRef"]},
+    {field: ["data", "type"]}
+  ]
+})
+
+Paginate(
+  Join(
+    Match(
+      Index("Factories_by_planetRef"),
+      Ref(Collection("Planets"), "1")
+    ),
+    Lambda(
+      "factoryRef",
+      Match(
+        Index("RobotParts_by_factoryRef_and_type"),
+        [Var("factoryRef"), "CPU"]
+      )
+    )
+  )
+)
+
+CreateIndex({
+  name: "Factories_by_planetRef_sorted_name",
+  source: Collection("Factories"),
+  values: [
+    {field: ["data", "name"]},
+    {field: ["ref"]}
+  ],
+  terms: [
+    {field: ["data", "planetRef"]}
+  ]
+})
+
+Paginate(
+  Join(
+    Match(
+      Index("Factories_by_planetRef_sorted_name"),
+      Ref(Collection("Planets"), "1")
+    ),
+    Lambda(
+      ["name", "factoryRef"],
+      Match(
+        Index("RobotParts_by_factoryRef"),
+        Var("factoryRef")
+      )
+    )
+  )
+)
+
+CreateCollection({
+  name: "Robots"
+})
+
+CreateIndex({
+  name: "Robots_by_part",
+  source: Collection("Robots"),
+  terms: [
+    {field: ["data", "partRefs"]}
+  ]
+})
+
+Create(
+  Ref(Collection("Robots"), "1"),
+  {
+    data: {
+      model: "Z3P0",
+      partRefs: [
+        Ref(Collection("RobotParts"), "1"),
+        Ref(Collection("RobotParts"), "3")
+      ]
+    }
+  }
+)
+
+Paginate(
+  Match(
+    Index("Robots_by_part"),
+    Ref(Collection("RobotParts"), "1")
+  )
+)
+
+Map(
+  Paginate(
+    Join(
+      Join(
+        Match(
+          Index("Factories_by_planetRef"),
+          Ref(Collection("Planets"), "1")
+        ),
+        Lambda(
+          "factoryRef",
+          Match(
+            Index("RobotParts_by_factoryRef_and_type"),
+            [Var("factoryRef"), "CPU"]
+          )
+        )
+      ),
+      Index("Robots_by_part")
+    )
+  ),
+  Lambda(
+    "robotRef",
+    Get(Var("robotRef"))
+  )
+)
+
+CreateCollection({
+  name: "Spaceships"
+})
+
+Create(
+  Ref(Collection("Spaceships"), "1"),
+  {
+    data: {
+      name: "Interceptor",
+      maxSpeed: 20,
+      weight: 100
+    }
+  }
+)
+
+Create(
+  Ref(Collection("Spaceships"), "2"),
+  {
+    data: {
+      name: "Explorer",
+      maxSpeed: 10,
+      weight: 200
+    }
+  }
+)
+
+Create(
+  Ref(Collection("Spaceships"), "3"),
+  {
+    data: {
+      name: "Transporter",
+      maxSpeed: 5,
+      weight: 1000
+    }
+  }
+)
+
+CreateIndex({
+  name: "Spaceships_by_maxSpeed",
+  source: Collection("Spaceships"),
+  values: [
+    {field: ["data", "maxSpeed"]},
+    {field: ["ref"]}
+  ]
+})
+
+Paginate(
+  Range(Match(Index("Spaceships_by_maxSpeed")), [], [15])
+)
+
+CreateIndex({
+  name: "Spaceships_by_weight",
+  source: Collection("Spaceships"),
+  values: [
+    {field: ["data", "weight"]},
+    {field: ["ref"]}
+  ]
+})
+
+Paginate(
+  Range(Match(Index("Spaceships_by_weight")), [], [500])
+)
+
+Paginate(
+  Intersection(
+    Range(Match(Index("Spaceships_by_maxSpeed")), [], [15]),
+    Range(Match(Index("Spaceships_by_weight")), [], [500])
+  )
+)
+
+CreateIndex({
+  name: "Spaceship_by_ref",
+  source: Collection("Spaceships"),
+  terms: [
+    {field: ["ref"]}
+  ]
+})
+
+Paginate(
+  Intersection(
+    Join(
+      Range(Match(Index("Spaceships_by_maxSpeed")), [], [15]),
+      Lambda(
+        ["maxSpeed", "ref"],
+        Match(
+          Index("Spaceship_by_ref"),
+          Var("ref")
+        )
+      )
+    ),
+    Join(
+      Range(Match(Index("Spaceships_by_weight")), [], [500]),
+      Lambda(
+        ["weight", "ref"],
+        Match(
+          Index("Spaceship_by_ref"),
+          Var("ref")
+        )
+      )
+    )
+  )
+)
+
+CreateCollection({
+  name: "Tools"
+})
+
+Create(
+  Ref(Collection("Tools"), "1"),
+  {
+    data: {
+      name: "Laser cutter"
+    }
+  }
+)
+
+Create(
+  Ref(Collection("Tools"), "2"),
+  {
+    data: {
+      name: "Robo wrench"
+    }
+  }
+)
+
+CreateCollection({
+  name: "Mechanics"
+})
+
+Create(
+  Ref(Collection("Mechanics"), "1"),
+  {
+    data: {
+      name: "Anna Laser",
+      toolRef: Ref(Collection("Tools"), "1")
+    }
+  }
+)
+
+Create(
+  Ref(Collection("Mechanics"), "2"),
+  {
+    data: {
+      name: "Johnny Sparkles",
+      toolRef: Ref(Collection("Tools"), "2")
+    }
+  }
+)
+
+Create(
+  Ref(Collection("Mechanics"), "3"),
+  {
+    data: {
+      name: "Peter No Tool"
+    }
+  }
+)
+
+CreateIndex({
+    name: "Mechanics_with_toolRef_name",
+    source: Collection("Mechanics"),
+    values: [
+      {field: ["data", "name"]},
+      {field: ["data", "toolRef"]},
+      {field: ["ref"]}
+    ]
+})
+
+Paginate(
+  Match(
+    Index("Mechanics_with_toolRef_name")
+  )
+)
+
+Paginate(
+  Filter(
+    Match(Index("Mechanics_with_toolRef_name")),
+    Lambda(
+      ["name", "toolRef", "ref"],
+      IsRef(Var("toolRef"))
+    )
+  )
+)
+
+Map(
+  Paginate(
+    Filter(
+      Match(Index("Mechanics_with_toolRef_name")),
+      Lambda(
+        ["name", "toolRef", "ref"],
+        IsRef(Var("toolRef"))
+      )
+    )
+  ),
+  Lambda(
+    ["name", "toolRef", "ref"],
+    {
+      mechanicDoc: Get(Var("ref")),
+      toolDoc: Get(Var("toolRef"))
+    }
+  )
+)
